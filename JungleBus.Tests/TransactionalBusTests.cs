@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Transactions;
 using JungleBus.Interfaces.Serialization;
 using JungleBus.Messaging;
@@ -21,13 +22,14 @@ namespace JungleBus.Tests
         public void TestInitialize()
         {
             _messagePublisher = new Mock<IMessagePublisher>(MockBehavior.Strict);
-            _messagePublisher.Setup(x => x.Publish(It.IsAny<string>(), It.IsAny<Type>()));
-            _messagePublisher.Setup(x => x.Send(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<IMessageQueue>()));
+            _messagePublisher.Setup(x => x.Publish(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<Dictionary<string, string>>()));
+            _messagePublisher.Setup(x => x.Send(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<IMessageQueue>(), It.IsAny<Dictionary<string, string>>()));
 
             _messageSerializer = new Mock<IMessageSerializer>(MockBehavior.Strict);
             _messageSerializer.Setup(x => x.Serialize(It.IsAny<object>())).Returns(SerializedMessage);
 
             _messageQueue = new Mock<IMessageQueue>(MockBehavior.Strict);
+            _messageQueue.SetupGet(x => x.QueueAddress).Returns("QueueName");
 
             _busUnderTest = new TransactionalBus(_messagePublisher.Object, _messageSerializer.Object, _messageQueue.Object);
         }
@@ -39,7 +41,16 @@ namespace JungleBus.Tests
         {
             _busUnderTest.Publish(new TestMessage());
             _messageSerializer.Verify(x => x.Serialize(It.IsAny<TestMessage>()), Times.Once());
-            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage)), Times.Once());
+            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage), It.Is<Dictionary<string, string>>(m => m["sender"] == "QueueName")), Times.Once());
+        }
+
+        [TestMethod]
+        public void TransactionalBusTests_NoInputQueue_Publishes_Message()
+        {
+            _busUnderTest = new TransactionalBus(_messagePublisher.Object, _messageSerializer.Object, null);
+            _busUnderTest.Publish(new TestMessage());
+            _messageSerializer.Verify(x => x.Serialize(It.IsAny<TestMessage>()), Times.Once());
+            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage), It.Is<Dictionary<string, string>>(m => !m.ContainsKey("sender"))), Times.Once());
         }
 
         [TestMethod]
@@ -47,7 +58,7 @@ namespace JungleBus.Tests
         {
             _busUnderTest.Publish<TestMessage>(x => x.Name = "Name");
             _messageSerializer.Verify(x => x.Serialize(It.Is<TestMessage>(m => m.Name == "Name")), Times.Once());
-            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage)), Times.Once());
+            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage), It.Is<Dictionary<string, string>>(m => m["sender"] == "QueueName")), Times.Once());
         }
 
         [TestMethod]
@@ -61,7 +72,7 @@ namespace JungleBus.Tests
             }
             _messageSerializer.Verify(x => x.Serialize(It.Is<object>(o => (o is TestMessage) && (o as TestMessage).Name == "Name1")), Times.Exactly(1));
             _messageSerializer.Verify(x => x.Serialize(It.Is<object>(o => (o is TestMessage) && (o as TestMessage).Name == "Name2")), Times.Exactly(1));
-            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage)), Times.Exactly(2));
+            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage), It.Is<Dictionary<string, string>>(m => m["sender"] == "QueueName")), Times.Exactly(2));
         }
 
         [TestMethod]
@@ -74,7 +85,7 @@ namespace JungleBus.Tests
                 scope.Dispose();
             }
             _messageSerializer.Verify(x => x.Serialize(It.IsAny<object>()), Times.Never());
-            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage)), Times.Never());
+            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage), null), Times.Never());
         }
 
         [TestMethod]
@@ -95,7 +106,7 @@ namespace JungleBus.Tests
             }
             _messageSerializer.Verify(x => x.Serialize(It.Is<object>(o => (o is TestMessage) && (o as TestMessage).Name == "Name11")), Times.Exactly(1));
             _messageSerializer.Verify(x => x.Serialize(It.Is<object>(o => (o is TestMessage) && (o as TestMessage).Name == "Name21")), Times.Exactly(1));
-            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage)), Times.Exactly(2));
+            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage), It.Is<Dictionary<string, string>>(m => m["sender"] == "QueueName")), Times.Exactly(2));
         }
 
         [TestMethod]
@@ -109,7 +120,7 @@ namespace JungleBus.Tests
             }
             _messageSerializer.Verify(x => x.Serialize(It.Is<object>(o => (o is TestMessage) && (o as TestMessage).Name == "Name1")), Times.Exactly(1));
             _messageSerializer.Verify(x => x.Serialize(It.Is<object>(o => (o is TestMessage) && (o as TestMessage).Name == "Name2")), Times.Exactly(1));
-            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage)), Times.Exactly(2));
+            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage), It.Is<Dictionary<string, string>>(m => m["sender"] == "QueueName")), Times.Exactly(2));
         }
 
         [TestMethod]
@@ -122,7 +133,7 @@ namespace JungleBus.Tests
                 scope.Dispose();
             }
             _messageSerializer.Verify(x => x.Serialize(It.IsAny<object>()), Times.Never());
-            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage)), Times.Never());
+            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage), null), Times.Never());
         }
 
         [TestMethod]
@@ -143,7 +154,7 @@ namespace JungleBus.Tests
             }
             _messageSerializer.Verify(x => x.Serialize(It.Is<object>(o => (o is TestMessage) && (o as TestMessage).Name == "Name11")), Times.Exactly(1));
             _messageSerializer.Verify(x => x.Serialize(It.Is<object>(o => (o is TestMessage) && (o as TestMessage).Name == "Name21")), Times.Exactly(1));
-            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage)), Times.Exactly(2));
+            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage), It.Is<Dictionary<string, string>>(m => m["sender"] == "QueueName")), Times.Exactly(2));
         }
 
         #endregion PUBLISH MESSAGE TESTS
@@ -155,8 +166,8 @@ namespace JungleBus.Tests
         {
             _busUnderTest.PublishLocal(new TestMessage());
             _messageSerializer.Verify(x => x.Serialize(It.IsAny<TestMessage>()), Times.Once());
-            _messagePublisher.Verify(x => x.Send(SerializedMessage, typeof(TestMessage), It.IsAny<IMessageQueue>()), Times.Once());
-            _messagePublisher.Verify(x => x.Publish(It.IsAny<string>(), It.IsAny<Type>()), Times.Never());
+            _messagePublisher.Verify(x => x.Send(SerializedMessage, typeof(TestMessage), It.IsAny<IMessageQueue>(), It.IsAny<Dictionary<string, string>>()), Times.Once());
+            _messagePublisher.Verify(x => x.Publish(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<Dictionary<string, string>>()), Times.Never());
         }
 
         [TestMethod]
@@ -164,8 +175,8 @@ namespace JungleBus.Tests
         {
             _busUnderTest.PublishLocal<TestMessage>(x => x.Name = "Name");
             _messageSerializer.Verify(x => x.Serialize(It.Is<TestMessage>(m => m.Name == "Name")), Times.Once());
-            _messagePublisher.Verify(x => x.Send(SerializedMessage, typeof(TestMessage), It.IsAny<IMessageQueue>()), Times.Once());
-            _messagePublisher.Verify(x => x.Publish(It.IsAny<string>(), It.IsAny<Type>()), Times.Never());
+            _messagePublisher.Verify(x => x.Send(SerializedMessage, typeof(TestMessage), It.IsAny<IMessageQueue>(), It.IsAny<Dictionary<string, string>>()), Times.Once());
+            _messagePublisher.Verify(x => x.Publish(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<Dictionary<string, string>>()), Times.Never());
         }
         [TestMethod]
         public void TransactionalBusTests_Transaction_PublishLocal_Message_Build_OnCommit()
@@ -179,8 +190,8 @@ namespace JungleBus.Tests
 
             _messageSerializer.Verify(x => x.Serialize(It.Is<object>(o => (o is TestMessage) && (o as TestMessage).Name == "Name1")), Times.Exactly(1));
             _messageSerializer.Verify(x => x.Serialize(It.Is<object>(o => (o is TestMessage) && (o as TestMessage).Name == "Name2")), Times.Exactly(1));
-            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage)), Times.Never());
-            _messagePublisher.Verify(x => x.Send(SerializedMessage, typeof(TestMessage), It.IsAny<IMessageQueue>()), Times.Exactly(2));
+            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage), It.IsAny<Dictionary<string, string>>()), Times.Never());
+            _messagePublisher.Verify(x => x.Send(SerializedMessage, typeof(TestMessage), It.IsAny<IMessageQueue>(), It.IsAny<Dictionary<string, string>>()), Times.Exactly(2));
         }
 
         [TestMethod]
@@ -193,8 +204,8 @@ namespace JungleBus.Tests
                 scope.Dispose();
             }
             _messageSerializer.Verify(x => x.Serialize(It.IsAny<object>()), Times.Never());
-            _messagePublisher.Verify(x => x.Publish(It.IsAny<string>(), It.IsAny<Type>()), Times.Never());
-            _messagePublisher.Verify(x => x.Send(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<IMessageQueue>()), Times.Never());
+            _messagePublisher.Verify(x => x.Publish(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<Dictionary<string, string>>()), Times.Never());
+            _messagePublisher.Verify(x => x.Send(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<IMessageQueue>(), It.IsAny<Dictionary<string, string>>()), Times.Never());
         }
 
         [TestMethod]
@@ -216,8 +227,8 @@ namespace JungleBus.Tests
 
             _messageSerializer.Verify(x => x.Serialize(It.Is<object>(o => (o is TestMessage) && (o as TestMessage).Name == "Name11")), Times.Exactly(1));
             _messageSerializer.Verify(x => x.Serialize(It.Is<object>(o => (o is TestMessage) && (o as TestMessage).Name == "Name21")), Times.Exactly(1));
-            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage)), Times.Never());
-            _messagePublisher.Verify(x => x.Send(SerializedMessage, typeof(TestMessage), It.IsAny<IMessageQueue>()), Times.Exactly(2));
+            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage), It.IsAny<Dictionary<string, string>>()), Times.Never());
+            _messagePublisher.Verify(x => x.Send(SerializedMessage, typeof(TestMessage), It.IsAny<IMessageQueue>(), It.IsAny<Dictionary<string, string>>()), Times.Exactly(2));
         }
 
         [TestMethod]
@@ -232,8 +243,8 @@ namespace JungleBus.Tests
 
             _messageSerializer.Verify(x => x.Serialize(It.Is<object>(o => (o is TestMessage) && (o as TestMessage).Name == "Name1")), Times.Once());
             _messageSerializer.Verify(x => x.Serialize(It.Is<object>(o => (o is TestMessage) && (o as TestMessage).Name == "Name2")), Times.Once());
-            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage)), Times.Never());
-            _messagePublisher.Verify(x => x.Send(SerializedMessage, typeof(TestMessage), It.IsAny<IMessageQueue>()), Times.Exactly(2));
+            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage), It.IsAny<Dictionary<string, string>>()), Times.Never());
+            _messagePublisher.Verify(x => x.Send(SerializedMessage, typeof(TestMessage), It.IsAny<IMessageQueue>(), It.IsAny<Dictionary<string, string>>()), Times.Exactly(2));
         }
 
         [TestMethod]
@@ -247,8 +258,8 @@ namespace JungleBus.Tests
             }
 
             _messageSerializer.Verify(x => x.Serialize(It.IsAny<object>()), Times.Never());
-            _messagePublisher.Verify(x => x.Publish(It.IsAny<string>(), It.IsAny<Type>()), Times.Never());
-            _messagePublisher.Verify(x => x.Send(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<IMessageQueue>()), Times.Never());
+            _messagePublisher.Verify(x => x.Publish(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<Dictionary<string, string>>()), Times.Never());
+            _messagePublisher.Verify(x => x.Send(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<IMessageQueue>(), It.IsAny<Dictionary<string, string>>()), Times.Never());
         }
 
         [TestMethod]
@@ -270,8 +281,8 @@ namespace JungleBus.Tests
 
             _messageSerializer.Verify(x => x.Serialize(It.Is<object>(o => (o is TestMessage) && (o as TestMessage).Name == "Name11")), Times.Exactly(1));
             _messageSerializer.Verify(x => x.Serialize(It.Is<object>(o => (o is TestMessage) && (o as TestMessage).Name == "Name21")), Times.Exactly(1));
-            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage)), Times.Never());
-            _messagePublisher.Verify(x => x.Send(SerializedMessage, typeof(TestMessage), It.IsAny<IMessageQueue>()), Times.Exactly(2));
+            _messagePublisher.Verify(x => x.Publish(SerializedMessage, typeof(TestMessage), It.IsAny<Dictionary<string, string>>()), Times.Never());
+            _messagePublisher.Verify(x => x.Send(SerializedMessage, typeof(TestMessage), It.IsAny<IMessageQueue>(), It.IsAny<Dictionary<string, string>>()), Times.Exactly(2));
         }
 
         #endregion PUBLISH LOCAL TESTS

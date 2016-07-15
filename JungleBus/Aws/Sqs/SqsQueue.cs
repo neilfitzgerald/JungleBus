@@ -106,6 +106,11 @@ namespace JungleBus.Aws.Sqs
         public IMessageParser MessageParser { get; set; }
 
         /// <summary>
+        /// Gets the address for the queue
+        /// </summary>
+        public string QueueAddress { get { return _queueUrl; } }
+
+        /// <summary>
         /// Retrieve messages from the underlying queue
         /// </summary>
         /// <param name="cancellationToken">Cancellation token</param>

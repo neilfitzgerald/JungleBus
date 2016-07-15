@@ -67,6 +67,11 @@ namespace JungleBus
         private readonly IMessageQueue _localMessageQueue;
 
         /// <summary>
+        /// Collection of metadata to send on all outbound messages
+        /// </summary>
+        private readonly Dictionary<string, string> _messageMetadata;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="TransactionalBus" /> class.
         /// </summary>
         /// <param name="messagePublisher">How to publish messages</param>
@@ -79,6 +84,11 @@ namespace JungleBus
             _messagePublisher = messagePublisher;
             _messageSerializer = messageSerializer;
             _localMessageQueue = messageQueue;
+            _messageMetadata = new Dictionary<string, string>();
+            if (messageQueue != null)
+            {
+                _messageMetadata[MessageConstants.SenderAttribute] = messageQueue.QueueAddress;
+            }
         }
 
         /// <summary>
@@ -210,7 +220,7 @@ namespace JungleBus
         {
             Log.TraceFormat("Publishing message of type {0}", type);
             string messageString = _messageSerializer.Serialize(message);
-            _messagePublisher.Publish(messageString, type);
+            _messagePublisher.Publish(messageString, type, _messageMetadata);
             Log.TraceFormat("Published message of type {0}", type);
         }
 
@@ -223,7 +233,7 @@ namespace JungleBus
         {
             Log.TraceFormat("Sending message of type {0}", type);
             string messageString = _messageSerializer.Serialize(message);
-            _messagePublisher.Send(messageString, type, _localMessageQueue);
+            _messagePublisher.Send(messageString, type, _localMessageQueue, _messageMetadata);
             Log.TraceFormat("Sending message of type {0}", type);
         }
     }

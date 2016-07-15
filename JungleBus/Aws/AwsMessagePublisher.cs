@@ -89,14 +89,14 @@ namespace JungleBus.Aws
         /// </summary>
         /// <param name="message">Serialized Message</param>
         /// <param name="type">Payload type</param>
-        public void Publish(string message, Type type)
+        public void Publish(string message, Type type, Dictionary<string, string> metadata)
         {
             if (_snsClient == null)
             {
                 throw new JungleBusException("Public publishing is disabled");
             }
 
-            _snsClient.Publish(message, type);
+            _snsClient.Publish(message, type, metadata);
             _messageLogger.OutboundLogMessage(message, type.AssemblyQualifiedName);
         }
 
@@ -106,7 +106,7 @@ namespace JungleBus.Aws
         /// <param name="messageString">Message to publish</param>
         /// <param name="type">Type of message to send</param>
         /// <param name="localMessageQueue">Queue to send to</param>
-        public void Send(string messageString, Type type, IMessageQueue localMessageQueue)
+        public void Send(string messageString, Type type, IMessageQueue localMessageQueue, Dictionary<string, string> metadata)
         {
             string messageType = type.AssemblyQualifiedName;
             SnsMessage fakeMessage = new SnsMessage()
@@ -114,9 +114,17 @@ namespace JungleBus.Aws
                 Message = messageString,
                 MessageAttributes = new Dictionary<string, MessageAttribute>()
                 {
-                    { "messageType", new MessageAttribute() { Type = "String", Value = messageType } },
+                    { MessageConstants.MessageTypeAttribute, new MessageAttribute() { Type = "String", Value = messageType } },
                 },
             };
+
+            if (metadata != null)
+            {
+                foreach (var kvp in metadata)
+                {
+                    fakeMessage.MessageAttributes[kvp.Key] = new MessageAttribute() { Type = "String", Value = kvp.Value };
+                }
+            }
 
             string messageBody = _messageSerializer.Serialize(fakeMessage);
             localMessageQueue.AddMessage(messageBody);

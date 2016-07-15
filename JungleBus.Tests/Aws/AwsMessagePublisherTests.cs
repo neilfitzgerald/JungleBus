@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using JungleBus.Aws;
 using JungleBus.Aws.Sns;
 using JungleBus.Exceptions;
@@ -25,10 +26,25 @@ namespace JungleBus.Tests.Aws
         public void AwsMessagePublisherTests_Publish()
         {
             Mock<ISnsClient> mockClient = new Mock<ISnsClient>(MockBehavior.Strict);
-            mockClient.Setup(x => x.Publish(It.IsAny<string>(), It.IsAny<Type>()));
+            mockClient.Setup(x => x.Publish(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<Dictionary<string, string>>()));
             AwsMessagePublisher publisher = new AwsMessagePublisher(mockClient.Object, _mockLogger.Object);
-            publisher.Publish("test message", typeof(TestMessage));
-            mockClient.Verify(x => x.Publish("test message", typeof(TestMessage)), Times.Once());
+            publisher.Publish("test message", typeof(TestMessage), null);
+            mockClient.Verify(x => x.Publish("test message", typeof(TestMessage), It.IsAny<Dictionary<string, string>>()), Times.Once());
+            _mockLogger.Verify(x => x.OutboundLogMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Once());
+        }
+
+        [TestMethod]
+        public void AwsMessagePublisherTests_Publish_With_Metadata()
+        {
+            Mock<ISnsClient> mockClient = new Mock<ISnsClient>(MockBehavior.Strict);
+            mockClient.Setup(x => x.Publish(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<Dictionary<string, string>>()));
+            AwsMessagePublisher publisher = new AwsMessagePublisher(mockClient.Object, _mockLogger.Object);
+            publisher.Publish("test message", typeof(TestMessage), new Dictionary<string, string>()
+            {
+                { "Sender", "Sender value" },
+                { "Another Key", "Another value" },
+            });
+            mockClient.Verify(x => x.Publish("test message", typeof(TestMessage), It.IsAny<Dictionary<string, string>>()), Times.Once());
             _mockLogger.Verify(x => x.OutboundLogMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Once());
         }
 
@@ -38,7 +54,7 @@ namespace JungleBus.Tests.Aws
             try
             {
                 AwsMessagePublisher publisher = new AwsMessagePublisher(_mockLogger.Object);
-                publisher.Publish("string", typeof(TestMessage));
+                publisher.Publish("string", typeof(TestMessage), null);
                 Assert.Fail();
             }
             catch (JungleBusException ex)
@@ -70,7 +86,30 @@ namespace JungleBus.Tests.Aws
             mockQueue.Setup(x => x.AddMessage(It.IsAny<string>())).Callback<string>(x => sentMessage = x);
 
             AwsMessagePublisher publisher = new AwsMessagePublisher(_mockLogger.Object);
-            publisher.Send("message body", typeof(TestMessage), mockQueue.Object);
+            publisher.Send("message body", typeof(TestMessage), mockQueue.Object, null);
+            mockQueue.Verify(x => x.AddMessage(It.IsAny<string>()), Times.Once());
+            Assert.IsNotNull(sentMessage);
+            SnsMessage message = JsonConvert.DeserializeObject<SnsMessage>(sentMessage);
+            Assert.IsNotNull(message);
+            Assert.AreEqual("message body", message.Message);
+            Assert.AreEqual("String", message.MessageAttributes["messageType"].Type);
+            Assert.AreEqual("JungleBus.Tests.TestMessage, JungleBus.Tests, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null", message.MessageAttributes["messageType"].Value);
+            _mockLogger.Verify(x => x.OutboundLogMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Once());
+        }
+
+        [TestMethod]
+        public void AwsMessagePublisherTests_Send_With_Metadata()
+        {
+            Mock<IMessageQueue> mockQueue = new Mock<IMessageQueue>(MockBehavior.Strict);
+            string sentMessage = null;
+            mockQueue.Setup(x => x.AddMessage(It.IsAny<string>())).Callback<string>(x => sentMessage = x);
+
+            AwsMessagePublisher publisher = new AwsMessagePublisher(_mockLogger.Object);
+            publisher.Send("message body", typeof(TestMessage), mockQueue.Object, new Dictionary<string, string>()
+            {
+                { "Sender", "Sender value" },
+                { "Another Key", "Another value" },
+            });
             mockQueue.Verify(x => x.AddMessage(It.IsAny<string>()), Times.Once());
             Assert.IsNotNull(sentMessage);
             SnsMessage message = JsonConvert.DeserializeObject<SnsMessage>(sentMessage);

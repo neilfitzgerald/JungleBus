@@ -26,6 +26,7 @@ using System.Collections.Generic;
 using Amazon;
 using Amazon.SimpleNotificationService;
 using Amazon.SimpleNotificationService.Model;
+using JungleBus.Messaging;
 
 namespace JungleBus.Aws.Sns
 {
@@ -87,7 +88,8 @@ namespace JungleBus.Aws.Sns
         /// </summary>
         /// <param name="message">Serialized Message</param>
         /// <param name="type">Payload type</param>
-        public void Publish(string message, Type type)
+        /// <param name="metadata">Message metadata to embed</param>
+        public void Publish(string message, Type type, Dictionary<string, string> metadata)
         {
             string topicName = GetTopicName(type);
             if (!_topicArns.ContainsKey(topicName))
@@ -104,7 +106,12 @@ namespace JungleBus.Aws.Sns
             }
 
             PublishRequest request = new PublishRequest(_topicArns[topicName], message);
-            request.MessageAttributes["messageType"] = new MessageAttributeValue() { StringValue = type.AssemblyQualifiedName, DataType = "String" };
+            foreach (var kvp in metadata)
+            {
+                request.MessageAttributes[kvp.Key] = new MessageAttributeValue() { StringValue = kvp.Value, DataType = "String", };
+            }
+
+            request.MessageAttributes[MessageConstants.MessageTypeAttribute] = new MessageAttributeValue() { StringValue = type.AssemblyQualifiedName, DataType = "String" };
             request.MessageAttributes["fromSns"] = new MessageAttributeValue() { StringValue = "True", DataType = "String" };
 
             _sns.Publish(request);

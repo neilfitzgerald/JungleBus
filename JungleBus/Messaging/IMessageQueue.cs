@@ -39,6 +39,11 @@ namespace JungleBus.Messaging
         IMessageParser MessageParser { get; set; }
 
         /// <summary>
+        /// Gets the address for the queue
+        /// </summary>
+        string QueueAddress { get; }
+
+        /// <summary>
         /// Retrieve messages from the underlying queue
         /// </summary>
         /// <param name="cancellationToken">Cancellation token</param>
