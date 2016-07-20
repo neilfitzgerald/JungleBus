@@ -89,6 +89,7 @@ namespace JungleBus.Aws
         /// </summary>
         /// <param name="message">Serialized Message</param>
         /// <param name="type">Payload type</param>
+        /// <param name="metadata">Additional metadata fields to publish</param>
         public void Publish(string message, Type type, Dictionary<string, string> metadata)
         {
             if (_snsClient == null)
@@ -106,6 +107,7 @@ namespace JungleBus.Aws
         /// <param name="messageString">Message to publish</param>
         /// <param name="type">Type of message to send</param>
         /// <param name="localMessageQueue">Queue to send to</param>
+        /// <param name="metadata">Additional metadata fields to publish</param>
         public void Send(string messageString, Type type, IMessageQueue localMessageQueue, Dictionary<string, string> metadata)
         {
             string messageType = type.AssemblyQualifiedName;

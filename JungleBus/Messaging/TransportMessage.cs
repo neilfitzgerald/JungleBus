@@ -31,48 +31,48 @@ namespace JungleBus.Messaging
     public class TransportMessage
     {
         /// <summary>
-        /// Gets or sets the body value
+        /// Gets the body value
         /// </summary>
         public string Body { get; internal set; }
 
         /// <summary>
-        /// Gets or sets the deserialized message
+        /// Gets the deserialized message
         /// </summary>
         /// <remarks>Will be null if parsing failed</remarks>
         public object Message { get; internal set; }
 
         /// <summary>
-        /// Gets or sets the type name passed via the message
+        /// Gets the type name passed via the message
         /// </summary>
         public string MessageTypeName { get; internal set; }
 
         /// <summary>
-        /// Gets or sets the type name passed via the message
+        /// Gets the type name passed via the message
         /// </summary>
         public Type MessageType { get; internal set; }
 
         /// <summary>
-        /// Gets or sets a value indicating whether the message parsing succeeded
+        /// Gets a value indicating whether the message parsing succeeded
         /// </summary>
         public bool MessageParsingSucceeded { get; internal set; }
 
         /// <summary>
-        /// Gets or sets the exception that was raised during the message parsing
+        /// Gets the exception that was raised during the message parsing
         /// </summary>
         public Exception Exception { get; internal set; }
 
         /// <summary>
-        /// Gets or sets the message handle
+        /// Gets the message handle
         /// </summary>
         public string ReceiptHandle { get; internal set; }
 
         /// <summary>
-        /// Gets or sets the number of times this message has already been processed
+        /// Gets the number of times this message has already been processed
         /// </summary>
         public int RetryCount { get; internal set; }
 
         /// <summary>
-        /// Gets or sets the sender of the message
+        /// Gets the sender of the message
         /// </summary>
         public string Sender { get; internal set; }
     }

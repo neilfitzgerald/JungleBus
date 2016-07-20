@@ -42,6 +42,7 @@ namespace JungleBus.Messaging
         /// </summary>
         /// <param name="message">Serialized Message</param>
         /// <param name="type">Payload type</param>
+        /// <param name="metadata">Additional metadata fields to publish</param>
         void Publish(string message, Type type, Dictionary<string, string> metadata);
 
         /// <summary>
@@ -50,6 +51,7 @@ namespace JungleBus.Messaging
         /// <param name="messageString">Message to publish</param>
         /// <param name="type">Type of message to send</param>
         /// <param name="localMessageQueue">Queue to send to</param>
+        /// <param name="metadata">Additional metadata fields to publish</param>
         void Send(string messageString, Type type, IMessageQueue localMessageQueue, Dictionary<string, string> metadata);
     }
 }

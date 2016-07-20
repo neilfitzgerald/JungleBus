@@ -108,7 +108,13 @@ namespace JungleBus.Aws.Sqs
         /// <summary>
         /// Gets the address for the queue
         /// </summary>
-        public string QueueAddress { get { return _queueUrl; } }
+        public string QueueAddress
+        {
+            get
+            {
+                return _queueUrl;
+            }
+        }
 
         /// <summary>
         /// Retrieve messages from the underlying queue
