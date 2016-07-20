@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Transactions;
 using JungleBus.Interfaces.Serialization;
 using JungleBus.Messaging;
-using JungleBus.Serialization;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 
@@ -178,6 +177,7 @@ namespace JungleBus.Tests
             _messagePublisher.Verify(x => x.Send(SerializedMessage, typeof(TestMessage), It.IsAny<IMessageQueue>(), It.IsAny<Dictionary<string, string>>()), Times.Once());
             _messagePublisher.Verify(x => x.Publish(It.IsAny<string>(), It.IsAny<Type>(), It.IsAny<Dictionary<string, string>>()), Times.Never());
         }
+
         [TestMethod]
         public void TransactionalBusTests_Transaction_PublishLocal_Message_Build_OnCommit()
         {

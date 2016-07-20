@@ -71,6 +71,11 @@ namespace JungleBus.Messaging
 
                 parsedMessage.MessageTypeName = snsMessage.MessageAttributes["messageType"].Value;
                 parsedMessage.MessageType = Type.GetType(parsedMessage.MessageTypeName, false, true);
+                if (snsMessage.MessageAttributes.ContainsKey(MessageConstants.SenderAttribute))
+                {
+                    parsedMessage.Sender = snsMessage.MessageAttributes[MessageConstants.SenderAttribute].Value;
+                }
+
                 if (parsedMessage.MessageType == null)
                 {
                     parsedMessage.MessageParsingSucceeded = false;

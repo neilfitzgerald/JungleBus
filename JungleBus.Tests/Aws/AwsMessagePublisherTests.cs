@@ -117,6 +117,8 @@ namespace JungleBus.Tests.Aws
             Assert.AreEqual("message body", message.Message);
             Assert.AreEqual("String", message.MessageAttributes["messageType"].Type);
             Assert.AreEqual("JungleBus.Tests.TestMessage, JungleBus.Tests, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null", message.MessageAttributes["messageType"].Value);
+            Assert.AreEqual("Sender value", message.MessageAttributes["Sender"].Value);
+            Assert.AreEqual("Another value", message.MessageAttributes["Another Key"].Value);
             _mockLogger.Verify(x => x.OutboundLogMessage(It.IsAny<string>(), It.IsAny<string>()), Times.Once());
         }
     }

@@ -47,6 +47,16 @@ namespace JungleBus.Tests.Messaging
         }
 
         [TestMethod]
+        public void MessageParserTests_parse_sender_success()
+        {
+            _messageAttributes["sender"] = new MessageAttribute() { Type = "String", Value = "JungleBus.Test.InputQueue" };
+            Message sourceMessage = new Message() { ReceiptHandle = "12345", Body = "{ Body = {  }, MessageAttribute = {}}" };
+            TransportMessage transportMessage = _parser.ParseMessage(sourceMessage);
+            Assert.IsNotNull(transportMessage);
+            Assert.AreEqual("JungleBus.Test.InputQueue", transportMessage.Sender);
+        }
+
+        [TestMethod]
         public void MessageParserTests_Unknown_Type()
         {
             _messageAttributes["messageType"].Value = "Invalid Type";
